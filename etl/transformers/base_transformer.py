@@ -4,7 +4,7 @@ from datetime import datetime
 from dataclasses import dataclass
 
 from ..extractors.base_extractor import ExtractedData, DataSchema
-from utils.logger import logger
+from etl.utils.logger import logger
 
 if TYPE_CHECKING:
     from ..loaders.base_loader import BaseLoader

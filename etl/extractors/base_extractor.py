@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 import os
 from dataclasses import dataclass
 
-from utils.logger import logger
-from utils.fitbit_api import load_cached_data
+from etl.utils.logger import logger
+from etl.utils.fitbit_api import load_cached_data
 
 @dataclass
 class DataSchema:
@@ -54,6 +54,11 @@ class BaseExtractor(ABC):
     @abstractmethod
     def process_day_record(self, day_record: Dict[str, Any], target_date: str) -> List[Dict[str, Any]]:
         """Process a day record for a specific target date - to be implemented by subclasses"""
+        pass
+    
+    @abstractmethod
+    def post_process_day_records(self, records: List[Dict[str, Any]], target_date: str) -> List[Dict[str, Any]]:
+        """Post-process day records (e.g., rotate time/value pairs) - to be implemented by subclasses"""
         pass
     
     def calculate_shift(self, target_date: str) -> int:

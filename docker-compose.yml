@@ -1,11 +1,11 @@
 services:
-  timescaledb:
+  db:
     image: timescale/timescaledb:latest-pg14
     container_name: timescaledb
     environment:
-      POSTGRES_PASSWORD: password
-      POSTGRES_USER: postgres
       POSTGRES_DB: fitbit-hr
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
     ports:
       - "5432:5432"
     volumes:
@@ -14,21 +14,65 @@ services:
       - timescale_network
     restart: unless-stopped
 
-  ingestion-service:
+  init_db:
     build:
-      context: ./ingestion-service
-      dockerfile: Dockerfile
-    container_name: ingestion-service
+      context: .
+      dockerfile: db-init-service/Dockerfile
+    container_name: db-init-service
     environment:
       DB_USER: postgres
       DB_PASSWORD: password
       DB_NAME: fitbit-hr
       DB_PORT: 5432
-      DB_HOST: timescaledb
+      DB_HOST: db
+      USER_ID: ${USER_ID:-user1}
+      DATA_SEED: ${DATA_SEED:-0}
+    depends_on:
+      - db
+    networks:
+      - timescale_network
+    restart: "no"
+
+  ingestion_user1:
+    build:
+      context: .
+      dockerfile: ingestion-service/Dockerfile
+    container_name: ingestion-user1
+    environment:
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: fitbit-hr
+      DB_PORT: 5432
+      DB_HOST: db
+      USER_ID: user1
+      DATA_SEED: 23
       START_DATE: ${START_DATE}
       END_DATE: ${END_DATE}
     depends_on:
-      - timescaledb
+      - db
+      - init_db
+    networks:
+      - timescale_network
+    restart: unless-stopped
+
+  ingestion_user2:
+    build:
+      context: .
+      dockerfile: ingestion-service/Dockerfile
+    container_name: ingestion-user2
+    environment:
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: fitbit-hr
+      DB_PORT: 5432
+      DB_HOST: db
+      USER_ID: user2
+      DATA_SEED: 37
+      START_DATE: ${START_DATE}
+      END_DATE: ${END_DATE}
+    depends_on:
+      - db
+      - init_db
     networks:
       - timescale_network
     restart: unless-stopped

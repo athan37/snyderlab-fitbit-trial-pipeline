@@ -1,10 +1,11 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 import json
 
 from .base_transformer import BaseTransformer, TransformedData
 from ..extractors.base_extractor import ExtractedData
-from utils.logger import logger
+from etl.utils.logger import logger
+from etl.config.settings import settings
 
 class HeartRateSummaryTransformer(BaseTransformer):
     """Heart rate summary data transformer"""
@@ -69,35 +70,33 @@ class HeartRateSummaryTransformer(BaseTransformer):
                 transformation_stats=self.transformation_stats.copy()
             )
     
-    def _transform_summary_record(self, summary_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Transform a single heart rate summary record"""
+    def _transform_summary_record(self, summary_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Transform a single heart rate summary record to database format"""
         try:
-            # Handle raw data format from extractor
-            date_str = summary_data.get('dateTime')
-            if not date_str:
-                logger.warning("Missing dateTime in summary data")
+            # Extract timestamp
+            timestamp_str = summary_data.get('dateTime')
+            if not timestamp_str:
+                logger.debug(f"Missing dateTime in summary record: {summary_data}")
                 return None
             
-            # Create unified timestamp format
-            timestamp_str = f"{date_str} 00:00:00"
-            # Remove original dateTime field
-            summary_data.pop('dateTime', None)
+            # Parse timestamp
+            try:
+                timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+            except ValueError as e:
+                logger.debug(f"Invalid timestamp format: {timestamp_str}, error: {e}")
+                return None
             
-            # Get resting heart rate
+            # Extract resting heart rate
             resting_hr = summary_data.get('resting_heart_rate')
-            if resting_hr is None:
-                resting_hr = summary_data.get('restingHeartRate')
             if resting_hr is not None:
                 try:
                     resting_hr = int(resting_hr)
                 except (ValueError, TypeError):
+                    logger.debug(f"Invalid resting heart rate: {resting_hr}")
                     resting_hr = None
-                    self.transformation_stats['missing_values_filled'] += 1
             
-            # Get heart rate zones
+            # Extract heart rate zones
             heart_rate_zones = summary_data.get('heart_rate_zones')
-            if heart_rate_zones is None:
-                heart_rate_zones = summary_data.get('heartRateZones', [])
             if heart_rate_zones:
                 # Convert to JSONB format
                 try:
@@ -108,10 +107,8 @@ class HeartRateSummaryTransformer(BaseTransformer):
             else:
                 heart_rate_zones_json = None
             
-            # Get custom heart rate zones
+            # Extract custom heart rate zones
             custom_zones = summary_data.get('custom_heart_rate_zones')
-            if custom_zones is None:
-                custom_zones = summary_data.get('customHeartRateZones', [])
             if custom_zones:
                 # Convert to JSONB format
                 try:
@@ -122,12 +119,16 @@ class HeartRateSummaryTransformer(BaseTransformer):
             else:
                 custom_zones_json = None
             
+            # Extract user_id
+            user_id = summary_data.get('user_id', 'user1')  # Default fallback
+            
             # Create database record
             db_record = {
-                'timestamp': datetime.fromisoformat(timestamp_str),
+                'timestamp': timestamp,
                 'resting_heart_rate': resting_hr,
                 'heart_rate_zones': heart_rate_zones_json,
-                'custom_heart_rate_zones': custom_zones_json
+                'custom_heart_rate_zones': custom_zones_json,
+                'user_id': user_id
             }
             
             return db_record

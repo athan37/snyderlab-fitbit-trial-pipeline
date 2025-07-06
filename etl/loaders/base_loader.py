@@ -7,8 +7,8 @@ from sqlalchemy import create_engine, text
 from contextlib import contextmanager
 
 from ..transformers.base_transformer import TransformedData
-from config.settings import settings
-from utils.logger import logger
+from etl.config.settings import settings
+from etl.utils.logger import logger
 
 class BaseLoader(ABC):
     """Abstract base class for data loading"""
@@ -29,21 +29,25 @@ class BaseLoader(ABC):
         pass
     
     def get_last_processed_timestamp(self) -> Optional[str]:
-        """Get the last processed timestamp from the database"""
+        """Get the last processed timestamp from the database for the current user"""
         try:
             with self.engine.connect() as conn:
                 # Get the table name from the loader
                 table_name = self.get_table_name()
+                current_user_id = settings.USER_ID
+                
+                # Query for the maximum timestamp for the current user only
                 result = conn.execute(
-                    text(f"SELECT MAX(timestamp) FROM {table_name}")
+                    text(f"SELECT MAX(timestamp) FROM {table_name} WHERE user_id = :user_id"),
+                    {"user_id": current_user_id}
                 )
                 last_timestamp = result.scalar()
                 
                 if last_timestamp:
-                    logger.info(f"Last processed timestamp from {table_name}: {last_timestamp}")
+                    logger.info(f"Last processed timestamp from {table_name} for user {current_user_id}: {last_timestamp}")
                     return last_timestamp.isoformat()
                 else:
-                    logger.info(f"No previous data found in {table_name}")
+                    logger.info(f"No previous data found in {table_name} for user {current_user_id}")
                     return None
                     
         except Exception as e:

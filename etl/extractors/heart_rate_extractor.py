@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import List, Dict, Any, Tuple
 from .base_extractor import BaseExtractor, DataSchema
-from utils.logger import logger
-from utils.fitbit_api import FITBIT_FIELDS
+from etl.utils.logger import logger
+from etl.utils.fitbit_api import FITBIT_FIELDS
+from etl.config.settings import settings
 
 class HeartRateExtractor(BaseExtractor):
     """Heart rate data extractor - handles intraday data only"""
@@ -15,8 +16,8 @@ class HeartRateExtractor(BaseExtractor):
         return [
             DataSchema(
                 name='activities_heart_intraday',
-                columns=['timestamp', 'value'],
-                primary_key_columns=['timestamp'],
+                columns=['timestamp', 'value', 'user_id'],
+                primary_key_columns=['timestamp', 'user_id'],
                 timestamp_column='timestamp'
             )
         ]
@@ -90,14 +91,58 @@ class HeartRateExtractor(BaseExtractor):
                 final_records.append({
                     'dateTime': target_date,  # Always use target_date for avoding stale data
                     'time': record['time'],
-                    'value': record['value']
+                    'value': record['value'],
+                    'user_id': settings.USER_ID
                 })
+            
+            # Post-process the records (rotate time/value pairs)
+            final_records = self.post_process_day_records(final_records, target_date)
             
             return final_records
             
         except Exception as e:
             logger.error(f"Error processing heart rate day record for {target_date}: {e}")
             return []
+    
+    def post_process_day_records(self, records: List[Dict[str, Any]], target_date: str) -> List[Dict[str, Any]]:
+        """Post-process day records by rotating only the values while keeping time in original order"""
+        if not records:
+            return records
+        
+        try:
+            # Get the data seed from settings
+            data_seed = settings.DATA_SEED
+            
+            if data_seed == 0:
+                # No rotation needed
+                return records
+            
+            # Calculate rotation offset based on seed and record length
+            rotation_offset = data_seed % len(records)
+            
+            if rotation_offset == 0:
+                # No rotation needed
+                return records
+            
+            # Create rotated records by shifting only the values
+            rotated_records = []
+            for i in range(len(records)):
+                # Calculate rotated index for values only
+                rotated_index = (i + rotation_offset) % len(records)
+                
+                # Create new record by spreading the original record and updating only the value
+                rotated_record = {
+                    **records[i],  # Spread all original fields including user_id
+                    'value': records[rotated_index]['value']  # Use rotated value
+                }
+                rotated_records.append(rotated_record)
+            
+            logger.debug(f"Rotated values for {len(records)} records with offset {rotation_offset} (seed: {data_seed})")
+            return rotated_records
+            
+        except Exception as e:
+            logger.error(f"Error in post_process_day_records: {e}")
+            return records
     
     def _get_base_date_from_record(self, day_record: Dict[str, Any]) -> str:
         """Extract the base date from the heart rate day record"""

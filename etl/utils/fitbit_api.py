@@ -1,7 +1,7 @@
 import os
 import json
 import numpy as np
-from utils.logger import logger
+from etl.utils.logger import logger
 
 # NOTE: This implementation uses local cached files only.
 # Ensure cache files exist in the cache directory before running the pipeline.

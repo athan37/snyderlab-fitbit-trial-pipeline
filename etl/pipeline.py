@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, Tuple, List
 import time
 
-from config.settings import settings
-from utils.logger import logger
+from etl.config.settings import settings
+from etl.utils.logger import logger
 
 # Import the new base classes and implementations
 from .extractors.base_extractor import BaseExtractor, DataSchema

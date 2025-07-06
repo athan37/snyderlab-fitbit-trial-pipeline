@@ -1,9 +1,10 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 
 from .base_transformer import BaseTransformer, TransformedData
 from ..extractors.base_extractor import ExtractedData
-from utils.logger import logger
+from etl.utils.logger import logger
+from etl.config.settings import settings
 
 class HeartRateTransformer(BaseTransformer):
     """Heart rate data transformer"""
@@ -62,45 +63,45 @@ class HeartRateTransformer(BaseTransformer):
                 transformation_stats=self.transformation_stats.copy()
             )
     
-    def _transform_single_record(self, record: Dict[str, Any]) -> Dict[str, Any]:
-        """Transform a single heart rate record"""
+    def _transform_single_record(self, record: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Transform a single heart rate record to database format"""
         try:
-            # Handle raw data format from extractor (dateTime + time)
-            if 'dateTime' in record and 'time' in record:
-                date_str = record.get('dateTime')
-                time_str = record.get('time')
-                if not date_str or not time_str:
-                    self.transformation_stats['invalid_records'] += 1
-                    return None
-                timestamp_str = f"{date_str} {time_str}"
-                # Remove original fields
-                record.pop('dateTime', None)
-                record.pop('time', None)
-            else:
-                self.transformation_stats['invalid_records'] += 1
+            # Extract timestamp from dateTime and time fields
+            date_time = record.get('dateTime')
+            time_str = record.get('time')
+            
+            if not date_time or not time_str:
+                logger.debug(f"Missing dateTime or time in record: {record}")
                 return None
             
-            # Get value and handle missing values
-            value = record.get('value', 0)
-            if value is None:
-                value = 0
-                self.transformation_stats['missing_values_filled'] += 1
+            # Combine date and time
+            timestamp_str = f"{date_time}T{time_str}"
             
-            # Convert to float
+            # Parse timestamp
             try:
-                value = float(value)
-            except (ValueError, TypeError):
-                value = 0.0
-                self.transformation_stats['missing_values_filled'] += 1
+                timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+            except ValueError as e:
+                logger.debug(f"Invalid timestamp format: {timestamp_str}, error: {e}")
+                return None
+            
+            # Extract value
+            value = record.get('value')
+            if value is None:
+                logger.debug(f"Missing value in record: {record}")
+                return None
+            
+            # Extract user_id
+            user_id = record.get('user_id', 'user1')  # Default fallback
             
             # Create database record
             db_record = {
-                'timestamp': datetime.fromisoformat(timestamp_str),
-                'value': value
+                'timestamp': timestamp,
+                'value': float(value),
+                'user_id': user_id
             }
             
             return db_record
             
         except Exception as e:
-            logger.debug(f"Single record transformation error: {e}")
+            logger.debug(f"Record transformation error: {e}")
             return None 
