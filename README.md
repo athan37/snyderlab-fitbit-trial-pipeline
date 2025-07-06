@@ -1,14 +1,14 @@
 # Heart Rate Data Pipeline with TimescaleDB
 
-A production-ready ETL pipeline for ingesting Fitbit heart rate data using **TimescaleDB**, Docker, and Python. Features modular ETL architecture with delta processing, multi-user support, and reproducible data seeding.
+A production-ready ETL pipeline for ingesting Fitbit heart rate data using **TimescaleDB**, Docker, and Python. Features modular ETL architecture with delta processing, multi-user support, and reproducible data seeding. Includes a FastAPI backend and React frontend for data visualization.
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Data Sources  │───▶│  ETL Pipeline   │───▶│   TimescaleDB   │
-│   (Simulated)   │    │   (Extract/     │    │   (Hypertable)  │
-└─────────────────┘    │    Transform/   │    └─────────────────┘
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Data Sources  │───▶│  ETL Pipeline   │───▶│   TimescaleDB   │───▶│   FastAPI +     │
+│   (Simulated)   │    │   (Extract/     │    │   (Hypertable)  │    │   React App     │
+└─────────────────┘    │    Transform/   │    └─────────────────┘    └─────────────────┘
                        │     Load)       │             
                        |─────────────────|
 ```
@@ -59,19 +59,28 @@ docker compose up -d db init_db
 
 # Start ingestion services for both users
 docker compose up -d ingestion_user1 ingestion_user2
+
+# Start API and client services
+docker compose up -d api client
 ```
 
-### 2. Monitor Services
+### 2. Access the Application
+- **Frontend**: http://localhost:3000
+- **API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
+
+### 3. Monitor Services
 ```bash
 # Check service status
 docker compose ps
 
-# View logs for specific user
+# View logs for specific service
+docker compose logs api
+docker compose logs client
 docker compose logs ingestion_user1
-docker compose logs ingestion_user2
 ```
 
-### 3. Access Data
+### 4. Access Data
 ```bash
 # Connect to TimescaleDB
 docker exec -it timescaledb psql -U postgres -d fitbit-hr
@@ -150,7 +159,34 @@ DELTA_MODE=true
 - **Schedule**: Daily at 2:00 AM via cron
 - **Dependencies**: Database and init_db
 
+#### **API Service (`api`)**
+- **Framework**: FastAPI with CORS support
+- **Port**: 8000
+- **Features**: Time-series data queries, user filtering, metric selection
+- **Dependencies**: Database
+
+#### **Client Service (`client`)**
+- **Framework**: React with TypeScript
+- **Port**: 3000
+- **Features**: Interactive dashboard, real-time data visualization
+- **Dependencies**: API service
+
 ## 🔍 Data Access
+
+### **Web Interface**
+- **Dashboard**: http://localhost:3000
+  - Interactive charts with user and metric selection
+  - Auto-fetching data on parameter changes
+  - Real-time visualization
+
+### **API Endpoints**
+```bash
+# Get API information
+curl http://localhost:8000/
+
+# Get time-series data
+curl "http://localhost:8000/timeseries?start_date=2025-06-29&end_date=2025-07-06&user_id=user1&metric=activities_heart_intraday"
+```
 
 ### **Direct Database Access**
 ```bash
@@ -199,65 +235,3 @@ ORDER BY hour;
 
 ### **Project Structure**
 ```
-Snyder/
-├── docker-compose.yml              # Container orchestration
-├── .dockerignore                   # Docker ignore patterns
-├── ingestion-service/              # Ingestion service
-│   ├── main.py                    # ETL pipeline entry point
-│   └── Dockerfile                 # Service container
-├── db-init-service/               # Database initialization
-│   ├── main.py                    # Schema creation
-│   └── Dockerfile                 # Service container
-├── etl/                           # ETL Pipeline Components
-│   ├── pipeline.py                # Main ETL orchestrator
-│   ├── config/                    # Configuration
-│   ├── extractors/                # Data extraction
-│   ├── transformers/              # Data transformation
-│   ├── loaders/                   # Data loading
-│   ├── utils/                     # Utilities
-│   └── requirements.txt           # Python dependencies
-├── api/                           # FastAPI service
-│   ├── main.py                    # API endpoints
-│   ├── requirements.txt           # API dependencies
-│   └── Dockerfile                 # API container
-└── data/                          # Database persistence
-    └── postgresql/                # TimescaleDB data
-```
-
-### **Adding New Data Types**
-1. **Create Extractor**: Extend `BaseExtractor` class
-2. **Create Transformer**: Extend `BaseTransformer` class  
-3. **Create Loader**: Extend `BaseLoader` class
-4. **Register Components**: Add to component dictionaries in `main.py`
-
-### **Data Seeding Configuration**
-- **Seed Values**: Configured per user in docker-compose.yml
-- **Reproducibility**: Same seed produces identical data
-- **Variation**: Different seeds create unique patterns
-- **Cache**: Generated data cached in `cache/` directory
-
-## 🎯 Key Benefits
-
-### **✅ Multi-User Architecture**
-- Separate containers for each user
-- Independent processing and scheduling
-- User-specific data patterns
-
-### **✅ Reproducible Data**
-- Deterministic data generation
-- Cache-based performance
-- Configurable seed values
-
-### **✅ Production Ready**
-- Docker containerization
-- Cron-based scheduling
-- Health monitoring
-- Error handling
-
-### **✅ Scalable Design**
-- Modular ETL components
-- Component-based architecture
-- Easy to extend
-
-## 📝 License
-This project is for educational and development purposes.
