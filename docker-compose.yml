@@ -1,0 +1,38 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg14
+    container_name: timescaledb
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: postgres
+      POSTGRES_DB: fitbit-hr
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgresql:/var/lib/postgresql/data
+    networks:
+      - timescale_network
+    restart: unless-stopped
+
+  ingestion-service:
+    build:
+      context: ./ingestion-service
+      dockerfile: Dockerfile
+    container_name: ingestion-service
+    environment:
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: fitbit-hr
+      DB_PORT: 5432
+      DB_HOST: timescaledb
+      START_DATE: ${START_DATE}
+      END_DATE: ${END_DATE}
+    depends_on:
+      - timescaledb
+    networks:
+      - timescale_network
+    restart: unless-stopped
+
+networks:
+  timescale_network:
+    driver: bridge
