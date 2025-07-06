@@ -1,0 +1,114 @@
+services:
+  db:
+    image: timescale/timescaledb:latest-pg14
+    container_name: timescaledb
+    environment:
+      POSTGRES_DB: fitbit-hr
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgresql:/var/lib/postgresql/data
+    networks:
+      - timescale_network
+    restart: unless-stopped
+
+  init_db:
+    build:
+      context: .
+      dockerfile: db-init-service/Dockerfile
+    container_name: db-init-service
+    environment:
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: fitbit-hr
+      DB_PORT: 5432
+      DB_HOST: db
+      USER_ID: ${USER_ID:-user1}
+      DATA_SEED: ${DATA_SEED:-0}
+    depends_on:
+      - db
+    networks:
+      - timescale_network
+    restart: "no"
+
+  ingestion_user1:
+    build:
+      context: .
+      dockerfile: ingestion-service/Dockerfile
+    container_name: ingestion-user1
+    environment:
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: fitbit-hr
+      DB_PORT: 5432
+      DB_HOST: db
+      USER_ID: user1
+      DATA_SEED: 23
+      START_DATE: ${START_DATE}
+      END_DATE: ${END_DATE}
+    depends_on:
+      - db
+      - init_db
+    networks:
+      - timescale_network
+    restart: unless-stopped
+
+  ingestion_user2:
+    build:
+      context: .
+      dockerfile: ingestion-service/Dockerfile
+    container_name: ingestion-user2
+    environment:
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: fitbit-hr
+      DB_PORT: 5432
+      DB_HOST: db
+      USER_ID: user2
+      DATA_SEED: 37
+      START_DATE: ${START_DATE}
+      END_DATE: ${END_DATE}
+    depends_on:
+      - db
+      - init_db
+    networks:
+      - timescale_network
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: api-service
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: fitbit-hr
+      DB_USER: postgres
+      DB_PASSWORD: password
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    networks:
+      - timescale_network
+    restart: unless-stopped
+
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    container_name: client-service
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    networks:
+      - timescale_network
+    restart: unless-stopped
+
+networks:
+  timescale_network:
+    driver: bridge
