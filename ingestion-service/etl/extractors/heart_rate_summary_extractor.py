@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import List, Dict, Any, Tuple
+import random
 
 from .base_extractor import BaseExtractor, DataSchema, ExtractedData
 from utils.logger import logger
@@ -22,14 +23,79 @@ class HeartRateSummaryExtractor(BaseExtractor):
             )
         ]
     
+    def generate_random_resting_heart_rate(self) -> int:
+        """Generate a random resting heart rate between 60-100 BPM"""
+        return random.randint(60, 100)
+    
+    def generate_random_heart_rate_zones(self) -> List[Dict[str, Any]]:
+        """Generate random heart rate zones data"""
+        zones = [
+            {
+                "name": "Out of Range",
+                "min": 30,
+                "max": 90,
+                "minutes": random.randint(200, 600)
+            },
+            {
+                "name": "Fat Burn", 
+                "min": 90,
+                "max": 120,
+                "minutes": random.randint(100, 300)
+            },
+            {
+                "name": "Cardio",
+                "min": 120,
+                "max": 160,
+                "minutes": random.randint(50, 150)
+            },
+            {
+                "name": "Peak",
+                "min": 160,
+                "max": 220,
+                "minutes": random.randint(10, 60)
+            }
+        ]
+        return zones
+    
+    def generate_random_custom_heart_rate_zones(self) -> List[Dict[str, Any]]:
+        """Generate random custom heart rate zones data"""
+        custom_zones = [
+            {
+                "name": "Custom Zone 1",
+                "min": random.randint(100, 130),
+                "max": random.randint(140, 170),
+                "minutes": random.randint(30, 120)
+            },
+            {
+                "name": "Custom Zone 2", 
+                "min": random.randint(80, 110),
+                "max": random.randint(120, 150),
+                "minutes": random.randint(60, 180)
+            }
+        ]
+        return custom_zones
+    
+    def generate_random_summary_data(self, target_date: str) -> Dict[str, Any]:
+        """Generate random heart rate summary data for a target date"""
+        return {
+            'dateTime': target_date,
+            'resting_heart_rate': self.generate_random_resting_heart_rate(),
+            'heart_rate_zones': self.generate_random_heart_rate_zones(),
+            'custom_heart_rate_zones': self.generate_random_custom_heart_rate_zones()
+        }
+
     def extract(self, target_date: str) -> List[Tuple[DataSchema, List[Dict[str, Any]]]]:
         """Extract summary data for a target date"""
         try:
             # Get the day record using shift logic
             day_record = self.get_day_record(target_date)
             if not day_record:
-                logger.warning(f"No heart rate summary data found for {target_date}")
-                return []
+                logger.warning(f"No heart rate summary data found for {target_date}, generating random data")
+                # Generate random data when no original data is available
+                random_summary = self.generate_random_summary_data(target_date)
+                schema = self.get_schemas()[0]
+                logger.info(f"Generated random heart rate summary data for {target_date}")
+                return [(schema, [random_summary])]
             
             schema = self.get_schemas()[0]
             
@@ -40,12 +106,19 @@ class HeartRateSummaryExtractor(BaseExtractor):
                 logger.info(f"Extracted heart rate summary data for {target_date}")
                 return [(schema, [summary_record])]  # Summary is single record
             else:
-                logger.warning(f"No heart rate summary data available for {target_date}")
-                return []
+                logger.warning(f"No heart rate summary data available for {target_date}, generating random data")
+                # Generate random data when processing fails
+                random_summary = self.generate_random_summary_data(target_date)
+                logger.info(f"Generated random heart rate summary data for {target_date}")
+                return [(schema, [random_summary])]
             
         except Exception as e:
             logger.error(f"Error extracting heart rate summary data for {target_date}: {e}")
-            return []
+            logger.info(f"Generating random heart rate summary data for {target_date}")
+            # Generate random data on error
+            random_summary = self.generate_random_summary_data(target_date)
+            schema = self.get_schemas()[0]
+            return [(schema, [random_summary])]
     
     def flatten_structure(self, raw_data: Dict[str, Any], target_date: str = None) -> List[Dict[str, Any]]:
         """Flatten heart rate summary data structure into records"""
@@ -62,11 +135,25 @@ class HeartRateSummaryExtractor(BaseExtractor):
             if activities_heart:
                 summary = activities_heart[0]
                 value = summary.get(FITBIT_FIELDS['VALUE'], {})
+                
+                # Use original data if available, otherwise generate random
+                resting_hr = value.get(FITBIT_FIELDS['RESTING_HEART_RATE'])
+                if resting_hr is None:
+                    resting_hr = self.generate_random_resting_heart_rate()
+                
+                heart_zones = value.get(FITBIT_FIELDS['HEART_RATE_ZONES'])
+                if heart_zones is None:
+                    heart_zones = self.generate_random_heart_rate_zones()
+                
+                custom_zones = value.get(FITBIT_FIELDS['CUSTOM_HEART_RATE_ZONES'])
+                if custom_zones is None:
+                    custom_zones = self.generate_random_custom_heart_rate_zones()
+                
                 records.append({
                     'dateTime': target_date,  # Always use target_date for avoiding stale data
-                    'resting_heart_rate': value.get(FITBIT_FIELDS['RESTING_HEART_RATE']),
-                    'heart_rate_zones': value.get(FITBIT_FIELDS['HEART_RATE_ZONES']),
-                    'custom_heart_rate_zones': value.get(FITBIT_FIELDS['CUSTOM_HEART_RATE_ZONES'])
+                    'resting_heart_rate': resting_hr,
+                    'heart_rate_zones': heart_zones,
+                    'custom_heart_rate_zones': custom_zones
                 })
             
         except Exception as e:

@@ -32,7 +32,7 @@ class HeartRateLoader(BaseLoader):
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS activities_heart_intraday (
                         timestamp TIMESTAMPTZ NOT NULL,
-                        value DOUBLE PRECISION NOT NULL,
+                        value NUMERIC(5,2) NOT NULL,
                         user_id TEXT NOT NULL,
                         PRIMARY KEY (timestamp, user_id)
                     )
@@ -46,14 +46,6 @@ class HeartRateLoader(BaseLoader):
                         if_not_exists => TRUE)
                 """))
                 logger.info("Hypertable creation SQL executed")
-                
-                # Create unique index for UPSERT operations
-                logger.info("Creating unique index...")
-                conn.execute(text("""
-                    CREATE UNIQUE INDEX IF NOT EXISTS idx_activities_heart_intraday_timestamp_userid 
-                    ON activities_heart_intraday (timestamp, user_id)
-                """))
-                logger.info("Index creation SQL executed")
                 
                 conn.commit()
             
@@ -83,7 +75,7 @@ class HeartRateLoader(BaseLoader):
                 
                 expected_columns = [
                     ('timestamp', 'timestamp with time zone', 'NO'),
-                    ('value', 'double precision', 'NO'),
+                    ('value', 'numeric', 'NO'),
                     ('user_id', 'text', 'NO')
                 ]
                 
@@ -114,21 +106,6 @@ class HeartRateLoader(BaseLoader):
                     logger.warning("Hypertable creation may have failed - table is not a TimescaleDB hypertable")
                 else:
                     logger.info("Hypertable verification passed")
-                
-                # Check if index was created
-                result = conn.execute(text("""
-                    SELECT EXISTS (
-                        SELECT FROM pg_indexes 
-                        WHERE tablename = 'activities_heart_intraday' 
-                        AND indexname = 'idx_activities_heart_intraday_timestamp_userid'
-                    )
-                """))
-                index_exists = result.scalar()
-                
-                if not index_exists:
-                    logger.warning("Unique index creation may have failed")
-                else:
-                    logger.info("Index verification passed")
             
             logger.info("Activities heart intraday database setup completed successfully")
             return True

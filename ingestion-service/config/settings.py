@@ -11,6 +11,9 @@ class Settings:
         self.DB_USER = os.getenv('DB_USER', 'postgres')
         self.DB_PASSWORD = os.getenv('DB_PASSWORD', 'password')
         
+        # User Configuration
+        self.USER_ID = os.getenv('USER_ID', 'default_user')
+        
         # ETL Configuration
         self.BATCH_SIZE = int(os.getenv('BATCH_SIZE', '10000'))
         
@@ -35,7 +38,8 @@ class Settings:
             self.DB_HOST,
             self.DB_NAME,
             self.DB_USER,
-            self.DB_PASSWORD
+            self.DB_PASSWORD,
+            self.USER_ID
         ]
         
         missing = [setting for setting in required_settings if not setting]

@@ -23,8 +23,8 @@ from etl.transformers.heart_rate_transformer import HeartRateTransformer
 from etl.transformers.heart_rate_summary_transformer import HeartRateSummaryTransformer
 from etl.loaders.heart_rate_loader import HeartRateLoader
 from etl.loaders.heart_rate_summary_loader import HeartRateSummaryLoader
-from etl.config.settings import settings
-from etl.utils.logger import logger
+from config.settings import settings
+from utils.logger import logger
 
 
 def main():
@@ -34,6 +34,7 @@ def main():
     # Log configuration
     logger.info("Pipeline Configuration:")
     logger.info(f"  • Database: {settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}")
+    logger.info(f"  • User ID: {settings.USER_ID}")
     logger.info(f"  • Batch Size: {settings.BATCH_SIZE:,}")
     logger.info(f"  • Delta Mode: {'Enabled' if settings.DELTA_MODE else 'Disabled'}")
     logger.info(f"  • UPSERT Mode: {'Enabled' if settings.UPSERT_MODE else 'Disabled'}")

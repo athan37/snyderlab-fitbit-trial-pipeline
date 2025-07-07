@@ -3,6 +3,7 @@ from datetime import datetime
 
 from .base_transformer import BaseTransformer, TransformedData
 from ..extractors.base_extractor import ExtractedData
+from config.settings import settings
 from utils.logger import logger
 
 class HeartRateTransformer(BaseTransformer):
@@ -86,17 +87,18 @@ class HeartRateTransformer(BaseTransformer):
                 value = 0
                 self.transformation_stats['missing_values_filled'] += 1
             
-            # Convert to float
+            # Convert to float and round to 2 decimal places
             try:
-                value = float(value)
+                value = round(float(value), 2)
             except (ValueError, TypeError):
                 value = 0.0
                 self.transformation_stats['missing_values_filled'] += 1
             
-            # Create database record
+            # Create database record with user_id
             db_record = {
                 'timestamp': datetime.fromisoformat(timestamp_str),
-                'value': value
+                'value': value,
+                'user_id': settings.USER_ID
             }
             
             return db_record
