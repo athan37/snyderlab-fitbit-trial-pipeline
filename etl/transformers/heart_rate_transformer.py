@@ -96,7 +96,7 @@ class HeartRateTransformer(BaseTransformer):
             # Create database record
             db_record = {
                 'timestamp': timestamp,
-                'value': float(value),
+                'value': round(float(value), 2),
                 'user_id': user_id
             }
             

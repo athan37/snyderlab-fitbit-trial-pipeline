@@ -4,6 +4,7 @@ import json
 
 from .base_transformer import BaseTransformer, TransformedData
 from ..extractors.base_extractor import ExtractedData
+from config.settings import settings
 from utils.logger import logger
 
 class HeartRateSummaryTransformer(BaseTransformer):
@@ -122,12 +123,13 @@ class HeartRateSummaryTransformer(BaseTransformer):
             else:
                 custom_zones_json = None
             
-            # Create database record
+            # Create database record with user_id
             db_record = {
                 'timestamp': datetime.fromisoformat(timestamp_str),
                 'resting_heart_rate': resting_hr,
                 'heart_rate_zones': heart_rate_zones_json,
-                'custom_heart_rate_zones': custom_zones_json
+                'custom_heart_rate_zones': custom_zones_json,
+                'user_id': settings.USER_ID
             }
             
             return db_record

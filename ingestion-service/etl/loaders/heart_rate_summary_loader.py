@@ -10,12 +10,12 @@ from config.settings import settings
 from utils.logger import logger
 
 class HeartRateSummaryLoader(BaseLoader):
-    """Heart rate summary data loader - handles daily summary with heart rate zones"""
+    """Heart rate summary data loader - handles daily summary with heart rate zones (multi-user)"""
     
     def setup_database(self) -> bool:
-        """Setup database connection and activities_heart_summary table"""
+        """Setup database connection and activities_heart_summary table with multi-user support"""
         try:
-            logger.info("Setting up activities_heart_summary database...")
+            logger.info("Setting up activities_heart_summary database (multi-user)...")
             
             # Test database connection first
             self.engine = create_engine(settings.DATABASE_URL)
@@ -35,7 +35,8 @@ class HeartRateSummaryLoader(BaseLoader):
                         resting_heart_rate INTEGER,
                         heart_rate_zones JSONB,
                         custom_heart_rate_zones JSONB,
-                        PRIMARY KEY (timestamp)
+                        user_id TEXT NOT NULL,
+                        PRIMARY KEY (timestamp, user_id)
                     )
                 """))
                 conn.commit()
@@ -69,7 +70,8 @@ class HeartRateSummaryLoader(BaseLoader):
                     ('timestamp', 'timestamp with time zone', 'NO'),
                     ('resting_heart_rate', 'integer', 'YES'),
                     ('heart_rate_zones', 'jsonb', 'YES'),
-                    ('custom_heart_rate_zones', 'jsonb', 'YES')
+                    ('custom_heart_rate_zones', 'jsonb', 'YES'),
+                    ('user_id', 'text', 'NO')
                 ]
                 
                 if len(columns) != len(expected_columns):
@@ -86,7 +88,7 @@ class HeartRateSummaryLoader(BaseLoader):
                 
                 logger.info("Table schema verification passed")
             
-            logger.info("Activities heart summary database setup completed successfully")
+            logger.info("Activities heart summary database setup completed successfully (multi-user)")
             return True
             
         except Exception as e:
@@ -99,7 +101,7 @@ class HeartRateSummaryLoader(BaseLoader):
         return 'activities_heart_summary'
     
     def load_records(self, transformed_data: TransformedData, upsert_mode: bool = True) -> bool:
-        """Load heart rate summary records into the database"""
+        """Load heart rate summary records into the database with user_id"""
         if not transformed_data.records:
             logger.warning("No heart rate summary records to load")
             return True
@@ -133,7 +135,7 @@ class HeartRateSummaryLoader(BaseLoader):
             return False
     
     def _upsert_batch(self, batch: List[Dict[str, Any]], batch_num: int) -> bool:
-        """Insert or update a batch of heart rate summary records using UPSERT"""
+        """Insert or update a batch of heart rate summary records using UPSERT with user_id"""
         try:
             with self.atomic_operation() as conn:
                 # Get initial count
@@ -141,12 +143,16 @@ class HeartRateSummaryLoader(BaseLoader):
                     SELECT COUNT(*) FROM activities_heart_summary
                 """)).scalar()
                 
-                # Insert records with UPSERT
+                # Insert records with UPSERT (composite key)
                 for record in batch:
+                    # Ensure user_id is present in the record
+                    if 'user_id' not in record:
+                        record['user_id'] = settings.USER_ID
+                    
                     conn.execute(text("""
-                        INSERT INTO activities_heart_summary (timestamp, resting_heart_rate, heart_rate_zones, custom_heart_rate_zones)
-                        VALUES (:timestamp, :resting_heart_rate, :heart_rate_zones, :custom_heart_rate_zones)
-                        ON CONFLICT (timestamp) 
+                        INSERT INTO activities_heart_summary (timestamp, resting_heart_rate, heart_rate_zones, custom_heart_rate_zones, user_id)
+                        VALUES (:timestamp, :resting_heart_rate, :heart_rate_zones, :custom_heart_rate_zones, :user_id)
+                        ON CONFLICT (timestamp, user_id) 
                         DO UPDATE SET 
                             resting_heart_rate = EXCLUDED.resting_heart_rate,
                             heart_rate_zones = EXCLUDED.heart_rate_zones,
@@ -168,7 +174,7 @@ class HeartRateSummaryLoader(BaseLoader):
             return False
     
     def _insert_batch(self, batch: List[Dict[str, Any]], batch_num: int) -> bool:
-        """Insert a batch of heart rate summary records using regular INSERT"""
+        """Insert a batch of heart rate summary records using regular INSERT with user_id"""
         try:
             with self.atomic_operation() as conn:
                 # Get initial count
@@ -178,9 +184,13 @@ class HeartRateSummaryLoader(BaseLoader):
                 
                 # Insert records
                 for record in batch:
+                    # Ensure user_id is present in the record
+                    if 'user_id' not in record:
+                        record['user_id'] = settings.USER_ID
+                    
                     conn.execute(text("""
-                        INSERT INTO activities_heart_summary (timestamp, resting_heart_rate, heart_rate_zones, custom_heart_rate_zones)
-                        VALUES (:timestamp, :resting_heart_rate, :heart_rate_zones, :custom_heart_rate_zones)
+                        INSERT INTO activities_heart_summary (timestamp, resting_heart_rate, heart_rate_zones, custom_heart_rate_zones, user_id)
+                        VALUES (:timestamp, :resting_heart_rate, :heart_rate_zones, :custom_heart_rate_zones, :user_id)
                     """), record)
                 
                 # Get final count
