@@ -66,6 +66,10 @@ const HeartRateDashboard: React.FC = () => {
     useEffect(() => {
         if (selectedUsers.length >= 1) {
             fetchChartData();
+        } else {
+            // Clear data when no users are selected
+            setTimeSeriesData([]);
+            setQueryInfo(null);
         }
     }, [selectedUsers, dateRange, fetchChartData]);
 
