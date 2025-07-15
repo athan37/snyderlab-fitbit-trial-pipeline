@@ -13,6 +13,10 @@ A production-ready ETL pipeline for ingesting Fitbit heart rate data using **Tim
 <img width="1547" height="899" alt="image" src="https://github.com/user-attachments/assets/6314e1ab-e927-46bc-9c92-dd8a1d930056" />
 
 
+# Detailed Monitoring
+<img width="1358" height="823" alt="image" src="https://github.com/user-attachments/assets/4a8b0310-1b6e-48b8-a93f-be30e04ee89c" />
+<img width="1358" height="823" alt="image" src="https://github.com/user-attachments/assets/305586c1-a786-4cd4-881f-23383a91b941" />
+
 
 
 ## 🏗️ Architecture
