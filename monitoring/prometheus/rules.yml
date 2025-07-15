@@ -1,0 +1,134 @@
+groups:
+  - name: pipeline_alerts
+    rules:
+      # API service down
+      - alert: APIServiceDown
+        expr: up{job="api-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "API service is down"
+          description: "API service has been down for more than 1 minute"
+
+      # Ingestion service down
+      - alert: IngestionServiceDown
+        expr: up{job=~"ingestion-.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: ingestion
+        annotations:
+          summary: "Ingestion service is down"
+          description: "One or more ingestion services have been down for more than 2 minutes"
+
+      # Database down
+      - alert: DatabaseDown
+        expr: up{job="postgres-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "Database is down"
+          description: "Database exporter is not responding"
+
+      # Prometheus down
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: monitoring
+        annotations:
+          summary: "Prometheus is down"
+          description: "Prometheus monitoring service is not responding"
+
+      # AlertManager down
+      - alert: AlertManagerDown
+        expr: up{job="alertmanager"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: monitoring
+        annotations:
+          summary: "AlertManager is down"
+          description: "AlertManager service is not responding"
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}% on {{ $labels.instance }}"
+
+      # High disk usage
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High disk usage detected"
+          description: "Disk usage is {{ $value }}% on {{ $labels.instance }}"
+
+      # High API latency
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="api-service"}[5m])) > 2
+        for: 3m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "High API latency detected"
+          description: "95th percentile API response time is {{ $value }}s on {{ $labels.instance }}"
+
+      # High API error rate
+      - alert: HighAPIErrorRate
+        expr: rate(http_requests_total{job="api-service", status=~"5.."}[5m]) / rate(http_requests_total{job="api-service"}[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "High API error rate detected"
+          description: "API error rate is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+      # Ingestion processing errors
+      - alert: IngestionProcessingError
+        expr: increase(heart_rate_processing_errors_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: ingestion
+        annotations:
+          summary: "Ingestion processing errors detected"
+          description: "{{ $value }} processing errors in the last 5 minutes on {{ $labels.instance }}"
+
+      # High ingestion latency
+      - alert: HighIngestionLatency
+        expr: histogram_quantile(0.95, rate(ingestion_processing_duration_seconds_bucket[5m])) > 30
+        for: 3m
+        labels:
+          severity: warning
+          service: ingestion
+        annotations:
+          summary: "High ingestion latency detected"
+          description: "95th percentile ingestion processing time is {{ $value }}s on {{ $labels.instance }}" 

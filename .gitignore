@@ -65,15 +65,18 @@ Thumbs.db
 data/postgresql/
 
 # Data files
-*.json
 *.csv
 *.db
 *.sqlite
 
+# JSON files (include all except cache)
+*.json
+!*.json
+**/cache/**/*.json
+
 # Temporary files
 *.tmp
 *.temp
-.cache/
 
 # Jupyter Notebook
 .ipynb_checkpoints
