@@ -243,8 +243,3 @@ WHERE user_id = 'user1'
 GROUP BY hour, user_id
 ORDER BY hour;
 ```
-
-## 🛠️ Development
-
-### **Project Structure**
-```
