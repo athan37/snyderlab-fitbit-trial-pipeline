@@ -14,6 +14,9 @@ class Settings:
         # User Configuration
         self.USER_ID = os.getenv('USER_ID', 'default_user')
         
+        # Data Configuration
+        self.DATA_SEED = int(os.getenv('DATA_SEED', '0'))
+        
         # ETL Configuration
         self.BATCH_SIZE = int(os.getenv('BATCH_SIZE', '10000'))
         

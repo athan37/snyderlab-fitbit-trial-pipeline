@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from config.settings import settings
+from etl.config.settings import settings
 
 class Logger:
     """Centralized logging utility for the ETL pipeline"""

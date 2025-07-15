@@ -105,7 +105,7 @@ class HeartRateExtractor(BaseExtractor):
             return []
     
     def post_process_day_records(self, records: List[Dict[str, Any]], target_date: str) -> List[Dict[str, Any]]:
-        """Post-process day records by rotating only the values while keeping time in original order"""
+        """Post-process day records by applying seed-based value randomization while keeping time patterns consistent"""
         if not records:
             return records
         
@@ -114,31 +114,33 @@ class HeartRateExtractor(BaseExtractor):
             data_seed = settings.DATA_SEED
             
             if data_seed == 0:
-                # No rotation needed
+                # No modification needed
                 return records
             
-            # Calculate rotation offset based on seed and record length
-            rotation_offset = data_seed % len(records)
+            # Use the seed to create a deterministic random number generator
+            import random
+            random.seed(data_seed)
             
-            if rotation_offset == 0:
-                # No rotation needed
-                return records
-            
-            # Create rotated records by shifting only the values
-            rotated_records = []
-            for i in range(len(records)):
-                # Calculate rotated index for values only
-                rotated_index = (i + rotation_offset) % len(records)
+            # Create modified records with randomized values but consistent time patterns
+            modified_records = []
+            for record in records:
+                # Keep the original time pattern
+                original_value = record['value']
                 
-                # Create new record by spreading the original record and updating only the value
-                rotated_record = {
-                    **records[i],  # Spread all original fields including user_id
-                    'value': records[rotated_index]['value']  # Use rotated value
+                # Apply seed-based randomization to the heart rate value
+                # Add/subtract a small random amount (±5 BPM) to create variation
+                variation = random.uniform(-5, 5)
+                new_value = max(50, min(200, original_value + variation))  # Keep within realistic range
+                
+                # Create new record with modified value but same time
+                modified_record = {
+                    **record,  # Spread all original fields including user_id and time
+                    'value': round(new_value, 2)  # Round to 2 decimal places
                 }
-                rotated_records.append(rotated_record)
+                modified_records.append(modified_record)
             
-            logger.debug(f"Rotated values for {len(records)} records with offset {rotation_offset} (seed: {data_seed})")
-            return rotated_records
+            logger.debug(f"Applied seed-based value randomization to {len(records)} records (seed: {data_seed})")
+            return modified_records
             
         except Exception as e:
             logger.error(f"Error in post_process_day_records: {e}")

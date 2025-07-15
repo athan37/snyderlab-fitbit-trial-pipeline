@@ -13,11 +13,11 @@ WORKDIR /app
 COPY etl/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the etl code
+# Copy the shared etl code
 COPY etl ./etl
 
 # Copy the application code (excluding cache files)
-COPY . .
+COPY ingestion-service .
 
 # Set PYTHONPATH so etl imports work
 ENV PYTHONPATH=/app
@@ -29,7 +29,7 @@ RUN find /app -name "*.json" -path "*/cache/*" -delete 2>/dev/null || true
 RUN mkdir -p /var/log
 
 # Create cron job file with environment variables - Run once per day at 2:00 AM
-RUN echo "DB_HOST=db\nDB_PORT=5432\nDB_NAME=fitbit-hr\nDB_USER=postgres\nDB_PASSWORD=password\n0 2 * * * /usr/local/bin/python /app/ingestion-service/main.py" > /etc/cron.d/ingestion-cron
+RUN echo "DB_HOST=db\nDB_PORT=5432\nDB_NAME=fitbit-hr\nDB_USER=postgres\nDB_PASSWORD=password\n0 2 * * * /usr/local/bin/python /app/main.py" > /etc/cron.d/ingestion-cron
 RUN chmod 0644 /etc/cron.d/ingestion-cron
 
 # Add cron job to crontab
@@ -55,7 +55,7 @@ RUN echo '#!/bin/bash\n\
     \n\
     # Run the ingestion script once immediately for initial data\n\
     echo "🔄 Running initial ingestion..."\n\
-    python /app/ingestion-service/main.py\n\
+    python /app/main.py\n\
     echo "✅ Initial ingestion completed"\n\
     \n\
     # Show cron jobs\n\

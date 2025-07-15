@@ -10,12 +10,12 @@ interface TimeSeriesChartProps {
     error: string | null;
 }
 
-const createTimeSeriesChartOptions = (title: string) => ({
+const createTimeSeriesChartOptions = (title: string, showTitle: boolean = true) => ({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
         legend: { position: 'top' as const },
-        title: { display: true, text: title, font: { size: 16, weight: 'bold' as const } },
+        title: { display: showTitle, text: title, font: { size: 16, weight: 'bold' as const } },
         tooltip: { mode: 'index' as const, intersect: false }
     },
     scales: {
@@ -50,13 +50,16 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ data, selectedUsers, 
         ? `Heart Rate Time Series - User ${selectedUsers[0]}`
         : `Heart Rate Time Series - Multiple Users`;
 
+    // Show title only for single user, hide for multiple users to avoid redundancy
+    const showChartTitle = selectedUsers.length === 1;
+
     // Memoize chart options to prevent chart recreation
-    const chartOptions = useMemo(() => createTimeSeriesChartOptions(chartTitle), [chartTitle]);
+    const chartOptions = useMemo(() => createTimeSeriesChartOptions(chartTitle, showChartTitle), [chartTitle, showChartTitle]);
 
     if (loading) {
         return (
             <div className="dashboard-chart-container">
-                <h3>Chart 1: Heart Rate Time Series</h3>
+                <h3>{chartTitle}</h3>
                 <div className="dashboard-loading-spinner">
                     <div className="dashboard-spinner"></div>
                 </div>
@@ -67,9 +70,20 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ data, selectedUsers, 
     if (error) {
         return (
             <div className="dashboard-chart-container">
-                <h3>Chart 1: Heart Rate Time Series</h3>
+                <h3>{chartTitle}</h3>
                 <div className="dashboard-message error">
                     <div>Error: {error}</div>
+                </div>
+            </div>
+        );
+    }
+
+    if (selectedUsers.length === 0) {
+        return (
+            <div className="dashboard-chart-container">
+                <h3>{chartTitle}</h3>
+                <div className="dashboard-message empty">
+                    <div>Please select at least one user to display heart rate data</div>
                 </div>
             </div>
         );
@@ -78,9 +92,9 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ data, selectedUsers, 
     if (!chartData) {
         return (
             <div className="dashboard-chart-container">
-                <h3>Chart 1: Heart Rate Time Series</h3>
+                <h3>{chartTitle}</h3>
                 <div className="dashboard-message empty">
-                    <div>Select at least one user to view data</div>
+                    <div>No data available for the selected users and date range</div>
                 </div>
             </div>
         );
@@ -88,7 +102,7 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ data, selectedUsers, 
 
     return (
         <div className="dashboard-chart-container">
-            <h3>Chart 1: Heart Rate Time Series</h3>
+            <h3>{chartTitle}</h3>
             <div className="dashboard-chart-content">
                 <Line
                     data={chartData}

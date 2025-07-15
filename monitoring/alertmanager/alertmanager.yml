@@ -1,0 +1,48 @@
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alertmanager@wearipedia.com'
+  smtp_auth_username: 'your-email@gmail.com'
+  smtp_auth_password: 'your-16-character-app-password'
+
+route:
+  group_by: ['alertname', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'email-notifications'
+  routes:
+    - match:
+        severity: critical
+      receiver: 'email-critical'
+      continue: true
+    - match:
+        severity: warning
+      receiver: 'email-warnings'
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'service']
+
+receivers:
+  - name: 'email-notifications'
+    email_configs:
+      - to: 'admin@wearipedia.com'
+        send_resolved: true
+
+  - name: 'email-critical'
+    email_configs:
+      - to: 'admin@wearipedia.com'
+        send_resolved: true
+        headers:
+          subject: 'CRITICAL ALERT: {{ .GroupLabels.alertname }}'
+
+  - name: 'email-warnings'
+    email_configs:
+      - to: 'admin@wearipedia.com'
+        send_resolved: true
+        headers:
+          subject: 'WARNING: {{ .GroupLabels.alertname }}' 

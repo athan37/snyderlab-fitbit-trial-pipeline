@@ -129,7 +129,7 @@ class HeartRateLoader(BaseLoader):
             self.reset_stats()
             
             # Extract target date from the first record
-            target_date = None
+            target_date = ""
             if transformed_data.records:
                 first_record = transformed_data.records[0]
                 if 'timestamp' in first_record:
@@ -144,11 +144,26 @@ class HeartRateLoader(BaseLoader):
             
             if upsert_mode:
                 logger.info("Using UPSERT mode to prevent duplicates")
-                return self._batch_process(transformed_data.records, 1000, self._upsert_batch, target_date)
+                result = self._batch_process(transformed_data.records, 1000, self._upsert_batch, target_date)
             else:
                 logger.info("Using regular INSERT mode")
-                return self._batch_process(transformed_data.records, 1000, self._insert_batch, target_date)
-                
+                result = self._batch_process(transformed_data.records, 1000, self._insert_batch, target_date)
+
+            # --- Add continuous aggregate refresh logic here ---
+            if result and target_date:
+                try:
+                    start_dt = f"{target_date} 00:00:00"
+                    end_dt = f"{target_date} 23:59:59"
+                    with self.engine.connect() as conn:
+                        for agg in ["activities_heart_intraday_1m", "activities_heart_intraday_1h", "activities_heart_intraday_1d"]:
+                            logger.info(f"Refreshing continuous aggregate {agg} for {target_date}")
+                            conn.execute(text(f"CALL refresh_continuous_aggregate('{agg}', :start_dt, :end_dt)"), {"start_dt": start_dt, "end_dt": end_dt})
+                except Exception as e:
+                    logger.error(f"Failed to refresh continuous aggregates for {target_date}: {e}")
+            # --- End aggregate refresh logic ---
+
+            return result
+            
         except Exception as e:
             logger.error(f"Heart rate loading error: {e}")
             return False
