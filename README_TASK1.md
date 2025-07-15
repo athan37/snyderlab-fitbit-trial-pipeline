@@ -15,6 +15,16 @@
 
 ### **Architecture Benefits**
 
+#### Mutiple ingestion pipeline support
+Shared etl/ folder for both db-init-serice and ingestion-service. Also support mutiple ingestion.
+
+- **db-init-service**: Uses shared ETL loaders for database schema creation
+- **ingestion-service**: Uses shared ETL pipeline for data processing
+
+### Benefits
+- **Code Reuse**: Both services import from the same `etl/` folder
+- **Consistency**: Ensures schema and data processing use identical logic
+
 #### **Modular ETL Design**
 ```python
 # Key-based component mapping for extensibility
