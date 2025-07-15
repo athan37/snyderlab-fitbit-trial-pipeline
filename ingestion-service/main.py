@@ -23,8 +23,8 @@ from etl.transformers.heart_rate_transformer import HeartRateTransformer
 from etl.transformers.heart_rate_summary_transformer import HeartRateSummaryTransformer
 from etl.loaders.heart_rate_loader import HeartRateLoader
 from etl.loaders.heart_rate_summary_loader import HeartRateSummaryLoader
-from config.settings import settings
-from utils.logger import logger
+from etl.config.settings import settings
+from etl.utils.logger import logger
 
 
 def main():
