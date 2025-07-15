@@ -5,7 +5,7 @@ export const formatDate = (date: Date): string => date.toISOString().slice(0, 19
 
 // Generic error handler
 const handleError = (error: unknown, setErrors: (errors: any) => void, errorKey: string, fallbackMessage: string) => {
-    setErrors(prev => ({
+    setErrors((prev: any) => ({
         ...prev,
         [errorKey]: error instanceof Error ? error.message : fallbackMessage
     }));
@@ -13,7 +13,7 @@ const handleError = (error: unknown, setErrors: (errors: any) => void, errorKey:
 
 // Generic loading state handler
 const setLoadingState = (setLoading: (loading: any) => void, key: string, isLoading: boolean) => {
-    setLoading(prev => ({ ...prev, [key]: isLoading }));
+    setLoading((prev: any) => ({ ...prev, [key]: isLoading }));
 };
 
 // Data fetching utilities
@@ -25,7 +25,7 @@ export const fetchAvailableUsers = async (
     selectedUsers: string[]
 ) => {
     setLoadingState(setLoading, 'users', true);
-    setErrors(prev => ({ ...prev, users: null }));
+    setErrors((prev: any) => ({ ...prev, users: null }));
 
     try {
         const response = await apiService.getAvailableUsers();
@@ -53,7 +53,7 @@ export const fetchTimeSeriesData = async (
     if (selectedUsers.length === 0) return;
 
     setLoadingState(setLoading, 'timeSeries', true);
-    setErrors(prev => ({ ...prev, timeSeries: null }));
+    setErrors((prev: any) => ({ ...prev, timeSeries: null }));
 
     try {
         const params = { start_date: formatDate(dateRange[0]), end_date: formatDate(dateRange[1]) };

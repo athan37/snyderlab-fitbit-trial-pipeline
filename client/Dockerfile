@@ -3,13 +3,13 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy package files
-COPY client/package*.json ./
+COPY package.json package-lock.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy source code
-COPY client/ .
+COPY . .
 
 # Set environment variable for API URL
 ENV REACT_APP_API_URL=http://api:8000

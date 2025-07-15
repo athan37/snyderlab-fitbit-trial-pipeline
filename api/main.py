@@ -2,7 +2,7 @@
 Heart Rate Time-Series API
 
 FastAPI application for querying Fitbit heart rate time-series data from TimescaleDB
-with automatic interval resolution and flexible aggregation.
+with automatic interval resolution.
 """
 
 from fastapi import FastAPI
@@ -13,6 +13,7 @@ import os
 
 from controllers import root, get_timeseries, get_multi_user_timeseries, get_time_series_service, health_check, get_available_users, set_time_series_service
 from services import TimeSeriesService
+from prometheus_fastapi_instrumentator import Instrumentator
 
 # Global service instance
 time_series_service = None
@@ -75,6 +76,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add Prometheus Instrumentator middleware
+Instrumentator().instrument(app).expose(app)
 
 # Root endpoint
 app.get("/")(root)
