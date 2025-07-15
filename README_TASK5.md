@@ -207,16 +207,6 @@ lsof -i :3000,3001,8000,9090,9093
 docker system prune -f
 docker compose up -d
 ```
-
-### No Data in Dashboards
-```bash
-# Check if metrics are being collected
-curl http://localhost:8000/metrics
-
-# Verify Prometheus targets
-curl http://localhost:9090/api/v1/targets
-```
-
 ### Database Connection Issues
 ```bash
 # Check database container
