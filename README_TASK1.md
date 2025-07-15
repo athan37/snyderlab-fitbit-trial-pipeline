@@ -1,6 +1,8 @@
 
 ## 🎯 Software Design Decisions
 
+Since the data are in fixed range, I modified and generate my own synthetic data so that the data for ingestion can catch up with the current date.
+
 ### **Why TimescaleDB **
 
 **1. PostgreSQL Compatibility**
